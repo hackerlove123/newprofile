@@ -29,15 +29,13 @@ const sendMarkdownMessage = async (chatId, message) => {
 // Hàm thực thi lệnh
 const executeCommand = async (chatId, command, host, time, username) => {
     const startTime = new Date().toLocaleString(), pid = Math.floor(Math.random() * 10000);
-
-    // Thông báo bắt đầu
-    const startMessage = `🚀Successfully🚀\nAttack PID: ${pid}\nWEBSITE: ${host}\nTime: ${time} Giây\nNgười gọi lệnh: ${username}\nThời gian bắt đầu: ${startTime}\nSố lượt tấn công có thể gọi đồng thời: ${maxSlot} slots\n[Check Host](https://check-host.net/check-http?host=${host})`;
+    const startMessage = `🚀Thành công🚀\nPID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: ${username}\nThời gian bắt đầu: ${startTime}\nSố lượt tấn công có thể gọi đồng thời: ${maxSlot} slots\n[Kiểm tra Host](https://check-host.net/check-http?host=${host})`;
     await sendMarkdownMessage(chatId, startMessage);
 
     const child = exec(command, { shell: '/bin/bash' });
     child.on('close', () => {
         const endTime = new Date().toLocaleString();
-        const completeMessage = `✅ Tiến trình hoàn tất:\nAttack PID: ${pid}\nWEBSITE: ${host}\nTime: ${time} Giây\nNgười gọi lệnh: ${username}\nThời gian bắt đầu: ${startTime}\nThời gian kết thúc: ${endTime}`;
+        const completeMessage = `✅ Tiến trình hoàn tất:\nPID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: ${username}\nThời gian bắt đầu: ${startTime}\nThời gian kết thúc: ${endTime}`;
         sendMarkdownMessage(chatId, completeMessage);
         currentAttacks.delete(chatId);
         if (attackQueue.length > 0) {
@@ -86,7 +84,7 @@ bot.on('message', async (msg) => {
         let output = '';
         child.stdout.on('data', (data) => output += data.toString());
         child.stderr.on('data', (data) => output += data.toString());
-        child.on('close', () => sendMarkdownMessage(chatId, `🚀 Kết quả lệnh: ${command}\n${output}`));
+        child.on('close', () => sendMarkdownMessage(chatId, `🚀 Kết quả lệnh: ${command}\n\`\`\`\n${output}\n\`\`\``));
         return;
     }
 
