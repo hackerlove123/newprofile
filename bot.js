@@ -101,7 +101,7 @@ bot.on('message', async (msg) => {
         const command = text.slice(4).trim();
         if (!command) return bot.sendMessage(chatId, '🚫 Lệnh không được để trống. Ví dụ: exe ls', { parse_mode: 'HTML' });
         exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
-            const resultMessage = `🚀 Command result:\n${command}\n${stdout || stderr}`;
+            const resultMessage = `🚀 Command result:\n<pre>${command}\n${stdout || stderr}</pre>`;
             bot.sendMessage(chatId, resultMessage, { parse_mode: 'HTML' });
         });
         return;
