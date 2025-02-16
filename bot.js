@@ -6,7 +6,7 @@ const os = require('os');
 const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
 const adminId = 1243471275;
 const allowedGroupIds = new Set([
-    123456789, // Thay thế bằng group ID thực tế
+    -1002423723717, // Thay thế bằng group ID thực tế
     987654321, // Thay thế bằng group ID thực tế
     112233445, // Thay thế bằng group ID thực tế
     556677889, // Thay thế bằng group ID thực tế
