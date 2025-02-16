@@ -75,7 +75,7 @@ bot.on('message', async (msg) => {
         if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
         if (time > maxTimeAttacks) return bot.sendMessage(chatId, `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
 
-        // Kiểm tra số lệnh đang chạy của người dùng
+        // Kiểm tra số lệnh đang chạy của người dùng hiện tại
         if (userStatus.has(chatId)) {
             const remainingTime = maxTimeAttacks - (Date.now() - userStatus.get(chatId).startTime) / 1000;
             return bot.sendMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.`, { parse_mode: 'HTML' });
