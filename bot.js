@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 const os = require('os');
+const formatJson = require('format-json'); // Thư viện định dạng JSON đẹp hơn
 
 // Cấu hình
 const token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU';
@@ -26,10 +27,11 @@ let isBotReady = true;
 bot.sendMessage(adminId, '[Version PRO] 🤖 Bot đã sẵn sàng nhận lệnh.');
 console.log('[DEBUG] Bot đã khởi động xong và sẵn sàng nhận lệnh.');
 
-// Hàm gửi thông báo dưới dạng JSON
+// Hàm gửi thông báo dưới dạng JSON đẹp
 const sendJsonMessage = async (chatId, data) => {
     try {
-        await bot.sendMessage(chatId, JSON.stringify(data, null, 2), { parse_mode: 'Markdown' });
+        const formattedJson = formatJson.plain(data); // Định dạng JSON đẹp hơn
+        await bot.sendMessage(chatId, formattedJson, { parse_mode: 'Markdown' });
     } catch (error) {
         console.error(`[ERROR] Gửi tin nhắn thất bại: ${error.message}`);
     }
