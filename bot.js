@@ -12,7 +12,7 @@ const botStartTime = Date.now();
 
 // Đặt bot sẵn sàng ngay lập tức
 let isBotReady = true;
-bot.sendMessage(adminId, '🤖 Bot đã sẵn sàng nhận lệnh.');
+bot.sendMessage(adminId, '[Version PRO] 🤖 Bot đã sẵn sàng nhận lệnh.');
 console.log('[DEBUG] Bot đã khởi động xong và sẵn sàng nhận lệnh.');
 
 // Hàm lấy thông số CPU và RAM
