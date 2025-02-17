@@ -50,6 +50,8 @@ def scrape_proxies(site):
             except json.JSONDecodeError:
                 # Nếu không phải JSON, tìm kiếm ip:port trong văn bản
                 proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
+                if "spys.me" in site:
+                    proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
                 print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
             return proxies
         return print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nThất bại\n{'='*50}")
