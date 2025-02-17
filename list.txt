@@ -10,9 +10,9 @@ https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=700
 https://api.proxyscrape.com/v2/?request=displayproxies&protocol=https&timeout=7000&country=all&ssl=all&anonymity=all
 https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
 https://proxyspace.pro/http.txt
-http://193.200.78.26:8000/http?key=free
 https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/refs/heads/master/http.txt
 https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/refs/heads/master/https.txt
 https://raw.githubusercontent.com/themiralay/Proxy-List-World/master/data.txt
 https://freeapiproxies.azurewebsites.net/proxyapi?port=8080
 https://freeapiproxies.azurewebsites.net/proxyapi?https=true
+https://spys.me/proxy.txt
