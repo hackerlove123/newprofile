@@ -3,6 +3,7 @@ import re
 import argparse
 import time
 import os
+import json
 
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
 
@@ -36,8 +37,20 @@ def scrape_proxies(site):
     try:
         response = requests.get(site, headers=headers, timeout=7)
         if response.status_code == 200:
-            proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
-            print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
+            proxies = []
+            try:
+                # Nếu dữ liệu là JSON
+                data = response.json()  # Phân tích cú pháp JSON
+                for proxy in data:
+                    ip = proxy.get("ip")
+                    port = proxy.get("port")
+                    if ip and port:
+                        proxies.append(f"{ip}:{port}")
+                print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
+            except json.JSONDecodeError:
+                # Nếu không phải JSON, tìm kiếm ip:port trong văn bản
+                proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
+                print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
             return proxies
         return print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nThất bại\n{'='*50}")
     except requests.exceptions.RequestException as e:
