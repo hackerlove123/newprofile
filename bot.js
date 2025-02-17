@@ -28,8 +28,13 @@ const execute = (chatId, host, time, user, uid) => {
 };
 
 const cleanup = (pid, uid) => (processes.attacks.delete(pid), processes.users.delete(uid));
-const processQueue = () => processes.queue.length > 0 && processes.attacks.size < maxConcurrent && 
-    (({ chatId, host, time, user, uid }) => execute(chatId, host, time, user, uid))(processes.queue.shift());
+const processQueue = () => {
+    if (processes.queue.length > 0 && processes.attacks.size < maxConcurrent) {
+        const { chatId, host, time, user, uid } = processes.queue.shift();
+        sendMsg(chatId, '⏳ Đang xử lý lệnh từ hàng đợi...');
+        execute(chatId, host, time, user, uid);
+    }
+};
 
 bot.on('message', msg => {
     const { chat: { id: cid }, text, from: { id: uid, username: user = 'Unknown' } = {} } = msg;
