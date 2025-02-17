@@ -4,9 +4,7 @@ let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
 bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
 
 const helpMessage = `📜 Hướng dẫn sử dụng:
-1. Tấn công: <code>https://example.com 60</code>
-2. Lệnh hệ thống (Admin): <code>Terminal.exe [lệnh]</code>
-3. Trợ giúp: <code>/help</code>
+➔ Lệnh chính xác: <code>https://example.com 60</code>
 ⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
 bot.on('message', async (msg) => {
