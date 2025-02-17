@@ -59,7 +59,7 @@ bot.on('message', async (msg) => {
 
         child.on('close', () => {
             const completeMessage = { status: "✅Process completed✅", pid, website: host, time: `${time} Giây`, caller: username, endTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) };
-            bot.sendMessage(chatId, JSON.stringify(completeMessage, null, 2), { parse_mode: 'HTML' };
+            bot.sendMessage(chatId, JSON.stringify(completeMessage, null, 2), { parse_mode: 'HTML' });
             currentAttacks.delete(pid); // Xóa lệnh đang chạy khi hoàn thành
             userProcesses.delete(userId); // Xóa tiến trình của người dùng khi hoàn thành
 
