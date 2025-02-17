@@ -1,4 +1,4 @@
-const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, 987654321, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 1, maxTimeAttacks = 120;
+const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, -1002334544605, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 1, maxTimeAttacks = 120;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
 
 bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
@@ -34,7 +34,7 @@ bot.on('message', async (msg) => {
 
         if (currentProcesses >= maxCurrent) {
             queue.push({ userId, host, time, chatId, caller });
-            return bot.sendMessage(chatId, `⏳ Yêu cầu của bạn đã được đưa vào hàng đợi. Vui lòng chờ...`, { parse_mode: 'HTML' });
+            return bot.sendMessage(chatId, `⏳ Yêu cầu của bạn đã được đưa vào hàng đợi. Vui lòng chờ...⏳`, { parse_mode: 'HTML' });
         }
 
         const pid = Math.floor(Math.random() * 10000), endTime = Date.now() + attackTime * 1000;
@@ -69,7 +69,7 @@ bot.on('message', async (msg) => {
 
             if (queue.length > 0) {
                 const next = queue.shift();
-                bot.sendMessage(next.chatId, `🚀 Bắt đầu tiến trình từ hàng đợi 📥: ${next.host} ${next.time} Giây`, { parse_mode: 'HTML' });
+                bot.sendMessage(next.chatId, `📥 Bắt đầu tiến trình từ hàng đợi 🚀: ${next.host} ${next.time} Giây`, { parse_mode: 'HTML' });
                 bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
             }
         });
