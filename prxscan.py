@@ -1,32 +1,31 @@
 import requests
 import re
 from collections import OrderedDict
-import telebot
 import argparse
 import time
 
 # Cấu hình Telegram
-TELEGRAM_BOT_TOKEN = '7819235807:AAEpCtPhIAAjTJYz0Efho35YZVl6ikAxKtc'
-TELEGRAM_CHAT_ID = '1243471275'
+TELEGRAM_BOT_TOKEN = '7819235807:AAEpCtPhIAAjTJYz0Efho35YZVl6ikAxKtc'  # Thay thế bằng token của bot
+TELEGRAM_CHAT_ID = '1243471275'      # Thay thế bằng chat ID của bạn
 
 # Cấu hình regex và timeout
 PROXY_PATTERN = re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b')
 REQUEST_TIMEOUT = 20
-TELEGRAM_TIMEOUT = 60
 
-def send_file_to_telegram(file_path, caption=""):
-    """Gửi file qua Telegram với timeout mở rộng"""
+def send_file_to_telegram(file_path, caption):
+    """Gửi file và tin nhắn qua Telegram sử dụng API"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
     try:
-        bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
-        with open(file_path, 'rb') as f:
-            bot.send_document(
-                chat_id=TELEGRAM_CHAT_ID,
-                document=f,
-                caption=caption[:1020] + '...' if len(caption) > 1024 else caption,
-                timeout=TELEGRAM_TIMEOUT
-            )
+        with open(file_path, 'rb') as file:
+            files = {'document': file}
+            data = {'chat_id': TELEGRAM_CHAT_ID, 'caption': caption}
+            response = requests.post(url, files=files, data=data, timeout=60)
+            if response.status_code != 200:
+                print(f"🔴 Lỗi khi gửi file: {response.text}")
+            else:
+                print("✅ File và báo cáo đã được gửi thành công!")
     except Exception as e:
-        print(f"🔴 Lỗi Telegram: {str(e)}")
+        print(f"🔴 Lỗi khi gửi file: {str(e)}")
 
 def fetch_proxies(url):
     """Lấy danh sách proxy từ URL với xử lý lỗi nâng cao"""
@@ -38,17 +37,17 @@ def fetch_proxies(url):
         )
         
         if response.status_code != 200:
-            return f"🔴 HTTP {response.status_code}", []
+            return f"🔴 HTTP {response.status_code}", [], response.status_code
             
         proxies = PROXY_PATTERN.findall(response.text)
-        return ("✅ Thành công", proxies) if proxies else ("🚫 Không có proxy", [])
+        return ("✅ Thành công", proxies, response.status_code) if proxies else ("🚫 Không có proxy", [], response.status_code)
 
     except requests.exceptions.Timeout:
-        return "⏳ Timeout", []
+        return "⏳ Timeout", [], None
     except requests.exceptions.RequestException as e:
-        return f"🔴 Kết nối: {str(e)}", []
+        return f"🔴 Kết nối: {str(e)}", [], None
     except Exception as e:
-        return f"🔴 Lỗi: {str(e)}", []
+        return f"🔴 Lỗi: {str(e)}", [], None
 
 def process_urls(file_path):
     """Xử lý danh sách URL và phân loại kết quả"""
@@ -65,16 +64,16 @@ def process_urls(file_path):
     for url in urls:
         print(f"\n🔎 Đang quét: {url}")
         start = time.time()
-        status, proxies = fetch_proxies(url)
+        status, proxies, status_code = fetch_proxies(url)
         elapsed = time.time() - start
 
         if proxies:
             results['success'].append(url)
             results['proxies'].extend(proxies)
-            print(f"🟢 {status} | {len(proxies)} proxy | ⏱️ {elapsed:.2f}s")
+            print(f"🟢 {status} | {len(proxies)} proxy | ⏱️ {elapsed:.2f}s | Mã trạng thái: {status_code}")
         else:
-            results['failed'].append((url, status))
-            print(f"🔴 {status} | ⏱️ {elapsed:.2f}s")
+            results['failed'].append((url, status, status_code))
+            print(f"🔴 {status} | ⏱️ {elapsed:.2f}s | Mã trạng thái: {status_code}")
 
         print("━" * 60)
     
@@ -86,10 +85,10 @@ def update_url_lists(results):
     with open(args.list, 'w') as f:
         f.write('\n'.join(results['success']))
     
-    # Ghi log lỗi chi tiết
+    # Ghi log lỗi chi tiết kèm mã trạng thái
     if results['failed']:
         with open('urlerror.txt', 'w') as f:
-            f.write("\n".join([f"{url} | {error}" for url, error in results['failed']]))
+            f.write("\n".join([f"{url} | {error} | Mã trạng thái: {status_code}" for url, error, status_code in results['failed']]))
 
 def generate_report(results, exec_time):
     """Tạo báo cáo định dạng Markdown"""
@@ -109,7 +108,7 @@ def generate_report(results, exec_time):
     
     if results['failed']:
         report.append("\n🔴 **URL LỖI:**")
-        report.extend([f"- `{url[:45]}...` | {error}" for url, error in results['failed'][:5]])
+        report.extend([f"- `{url[:45]}...` | {error} | Mã trạng thái: {status_code}" for url, error, status_code in results['failed'][:5]])
     
     return '\n'.join(report)
 
@@ -133,7 +132,7 @@ def main():
         # Cập nhật danh sách
         update_url_lists(results)
         
-        # Tạo và gửi báo cáo
+        # Tạo báo cáo và gửi file qua Telegram
         exec_time = time.time() - start_time
         report = generate_report(results, exec_time)
         send_file_to_telegram('live.txt', report)
