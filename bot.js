@@ -17,15 +17,17 @@ const execute = (chatId, host, time, user, uid) => {
     processes.attacks.set(pid, { uid, start: Date.now() });
     processes.users.set(uid, { pid, start: Date.now(), time });
 
-    child.on('error', e => (sendMsg(chatId, `❌ Lỗi: ${e.message}`), cleanup(pid, uid))
-          .on('close', () => {
-              sendMsg(chatId, `✅ Completed\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time}s\nCaller: @${user}\nEnd: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`);
-              cleanup(pid, uid);
-              processQueue();
-          });
+    child.on('error', e => {
+        sendMsg(chatId, `❌ Lỗi: ${e.message}`);
+        cleanup(pid, uid);
+    }).on('close', () => {
+        sendMsg(chatId, `✅ Completed\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time}s\nCaller: @${user}\nEnd: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`);
+        cleanup(pid, uid);
+        processQueue();
+    });
 };
 
-const cleanup = (pid, uid) => (processes.attacks.delete(pid), processes.users.delete(uid);
+const cleanup = (pid, uid) => (processes.attacks.delete(pid), processes.users.delete(uid));
 const processQueue = () => processes.queue.length > 0 && processes.attacks.size < maxConcurrent && 
     (({ chatId, host, time, user, uid }) => execute(chatId, host, time, user, uid))(processes.queue.shift());
 
