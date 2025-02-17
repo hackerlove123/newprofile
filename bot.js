@@ -78,7 +78,7 @@ bot.on('message', (msg) => {
   const { chat: { id: cid }, text, from: { id: uid, username: user = 'Unknown' } = {} } = msg;
   
   // Authorization check
-  if (!allowedGroupIds.has(cid) return bot.sendMessage(cid, '🚫 Truy cập bị từ chối!');
+  if (!allowedGroupIds.has(cid)) return bot.sendMessage(cid, '🚫 Truy cập bị từ chối!');
   
   // Attack command
   if (text?.startsWith('http')) {
