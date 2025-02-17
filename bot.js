@@ -9,6 +9,7 @@ const bot = new TelegramBot(token, { polling: true });
 
 const maxSlot = 1; // Số lượng tiến trình đồng thời mỗi người dùng có thể chạy
 const maxCurrent = 3; // Số lượng tiến trình đồng thời toàn bộ hệ thống có thể chạy
+const maxTimeAttacks = 120; // Thời gian tối đa cho mỗi cuộc tấn công (giây)
 
 let currentProcesses = 0;
 let queue = [];
@@ -26,6 +27,11 @@ bot.on('message', async (msg) => {
     if (text.startsWith('http://') || text.startsWith('https://')) {
         const [host, time] = text.split(' ');
         if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <URL> <time>.', { parse_mode: 'HTML' });
+
+        const attackTime = parseInt(time, 10);
+        if (attackTime > maxTimeAttacks) {
+            return bot.sendMessage(chatId, `🚫 Thời gian tấn công không được vượt quá ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
+        }
 
         const pid = Math.floor(Math.random() * 10000);
         const startMessage = {
