@@ -1,111 +1,137 @@
 import requests
 import re
+from collections import OrderedDict
+import telebot
 import argparse
 import time
-import os
-import json
 
-headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+# Cấu hình Telegram
+TELEGRAM_BOT_TOKEN = '7819235807:AAEpCtPhIAAjTJYz0Efho35YZVl6ikAxKtc'
+TELEGRAM_CHAT_ID = '1243471275'
 
-# Cấu hình Telegram Bot
-TELEGRAM_BOT_TOKEN = "7819235807:AAEpCtPhIAAjTJYz0Efho35YZVl6ikAxKtc"
-TELEGRAM_CHAT_ID = "1243471275"
+# Pattern regex để tìm proxy
+PROXY_PATTERN = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}')
+ERROR_MESSAGES = {
+    'timeout': '⏳ Timeout',
+    'no_proxy': '🚫 Không có proxy',
+    'invalid_format': '📄 Định dạng không hợp lệ',
+}
 
-# Hàm gửi tin nhắn qua Telegram
-def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+def send_file_to_telegram(file_path, caption=""):
+    """Gửi file qua Telegram với caption được cắt gọn"""
     try:
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            print("📤 Tin nhắn đã gửi thành công.")
-        else:
-            print(f"⚠️ Lỗi gửi tin nhắn Telegram: {response.status_code}")
+        bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+        with open(file_path, 'rb') as f:
+            bot.send_document(
+                chat_id=TELEGRAM_CHAT_ID,
+                document=f,
+                caption=caption[:1023] + '...' if len(caption) > 1024 else caption
+            )
     except Exception as e:
-        print(f"⚠️ Lỗi kết nối tới Telegram: {e}")
+        print(f"🔴 Telegram Error: {str(e)}")
 
-# Hàm đọc danh sách các trang proxy từ file
-def load_proxy_sites(file_path):
+def fetch_proxies(url):
+    """Lấy danh sách proxy từ URL với xử lý lỗi chi tiết"""
     try:
-        with open(file_path) as f: return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"🚨 Không tìm thấy file: {file_path}")
-        return []
+        response = requests.get(url, timeout=15, headers={'User-Agent': 'Mozilla/5.0'})
+        
+        if response.status_code != 200:
+            return f"🔴 HTTP {response.status_code}", []
+            
+        proxies = PROXY_PATTERN.findall(response.text)
+        if not proxies:
+            return ERROR_MESSAGES['no_proxy'], []
+            
+        return "✅ Thành công", proxies
+        
+    except requests.exceptions.Timeout:
+        return ERROR_MESSAGES['timeout'], []
+    except Exception as e:
+        return f"🔴 {str(e)}", []
 
-# Hàm quét proxy từ trang web
-def scrape_proxies(site):
-    try:
-        response = requests.get(site, headers=headers, timeout=7)
-        if response.status_code == 200:
-            proxies = []
-            try:
-                # Nếu dữ liệu là JSON
-                data = response.json()  # Phân tích cú pháp JSON
-                for proxy in data:
-                    ip = proxy.get("ip")
-                    port = proxy.get("port")
-                    if ip and port:
-                        proxies.append(f"{ip}:{port}")
-                print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
-            except json.JSONDecodeError:
-                # Nếu không phải JSON, tìm kiếm ip:port trong văn bản
-                proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
-                if "spys.me" in site:
-                    proxies = re.findall(r"\d+\.\d+\.\d+\.\d+:\d+", response.text)
-                print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nSố lượng proxy: {len(proxies)}\n{'='*50}")
-            return proxies
-        return print(f"\n{'='*50}\nĐang quét: {site}\nGET {response.status_code}\nThất bại\n{'='*50}")
-    except requests.exceptions.RequestException as e:
-        return print(f"\n{'='*50}\nĐang quét: {site}\nLỗi: {e}\n{'='*50}")
+def process_urls(file_path):
+    """Xử lý toàn bộ URL trong file và trả về kết quả"""
+    with open(file_path, 'r') as f:
+        urls = [line.strip() for line in f if line.strip()]
 
-# Hàm lưu proxy vào file
-def save_proxies(proxies, filename="live.txt"):
-    with open(filename, "w") as file: file.writelines(f"{proxy}\n" for proxy in proxies)
-    return len(proxies)
-
-# Hàm xóa bảng tổng kết cũ
-def clear_screen(): os.system('cls' if os.name == 'nt' else 'clear')
-
-# Hàm chính quét và xử lý proxy
-def main():
-    parser = argparse.ArgumentParser(description="Quét proxy từ các trang web.")
-    parser.add_argument("-l", "--list", required=True, help="Đường dẫn đến file chứa danh sách các trang web proxy.")
-    args = parser.parse_args()
+    results = {'success': [], 'failed': [], 'proxies': []}
     
-    proxy_sites = load_proxy_sites(args.list)
-    if not proxy_sites: return print("⚠️ Danh sách proxy rỗng hoặc không hợp lệ.")
+    for url in urls:
+        print(f"🔎 Đang quét: {url}")
+        status, proxies = fetch_proxies(url)
+        
+        if proxies:
+            results['success'].append(url)
+            results['proxies'].extend(proxies)
+            print(f"🟢 {status} | {len(proxies)} proxy")
+        else:
+            results['failed'].append((url, status))
+            print(f"🔴 {status}")
+
+        print("━" * 60)
+    
+    return results
+
+def update_url_lists(file_path, results):
+    """Cập nhật danh sách URL và ghi log lỗi"""
+    # Ghi lại các URL thành công
+    with open(file_path, 'w') as f:
+        f.write('\n'.join(results['success']))
+    
+    # Ghi log lỗi
+    if results['failed']:
+        with open('urlerror.txt', 'w') as f:
+            for url, error in results['failed']:
+                f.write(f"{url} | {error}\n")
+
+def generate_report(results):
+    """Tạo báo cáo tổng hợp"""
+    total = len(results['proxies'])
+    unique = len(OrderedDict.fromkeys(results['proxies']))
+    
+    report = [
+        "📡 BÁO CÁO PROXY",
+        f"▸ Tổng proxy trước khi lọc: {total}",
+        f"▸ Đã loại bỏ {total - unique} proxy trùng lặp",
+        f"▸ Proxy duy nhất sau lọc: {unique}",
+        f"▸ URL thành công: {len(results['success'])}",
+        f"▸ URL thất bại: {len(results['failed'])}",
+    ]
+    
+    if results['failed']:
+        report.append("\n🔴 URL LỖI:")
+        for url, error in results['failed'][:5]:  # Giới hạn hiển thị 5 lỗi
+            report.append(f"▸ {url[:50]}... | {error}")
+    
+    return '\n'.join(report)
+
+def main():
+    parser = argparse.ArgumentParser(description="Công cụ quét proxy tự động")
+    parser.add_argument('-l', '--list', required=True, help="File chứa danh sách URL")
+    args = parser.parse_args()
 
     while True:
-        clear_screen()  # Xóa bảng tổng kết cũ
-        all_proxies = []  # Sử dụng list để lưu tất cả proxy trước khi lọc trùng
-        message = "📡 Kết quả quét proxy:\n"
-
-        for site in proxy_sites:
-            proxies = scrape_proxies(site)
-            if proxies:
-                all_proxies.extend(proxies)  # Thêm proxy vào danh sách
-                message += f"\nĐang quét: {site}\nSố lượng proxy: {len(proxies)}\n{'='*50}"
-
-        if all_proxies:
-            total_proxies_before_filter = len(all_proxies)  # Tổng số proxy trước khi lọc trùng
-            unique_proxies = list(set(all_proxies))  # Loại bỏ proxy trùng lặp
-            total_proxies_after_filter = len(unique_proxies)  # Tổng số proxy sau khi lọc trùng
-            proxies_saved = save_proxies(unique_proxies)
-            
-            # Thông báo số lượng proxy bị lọc trùng và tổng proxy hợp lệ
-            message += f"\n🔍 Tổng số proxy trước khi lọc trùng: {total_proxies_before_filter}"
-            message += f"\n🚮 Đã loại bỏ {total_proxies_before_filter - total_proxies_after_filter} proxy trùng lặp."
-            message += f"\n✅ Tổng số proxy hợp lệ sau khi lọc trùng: {total_proxies_after_filter}"
-            message += f"\n💾 Đã lưu {proxies_saved} proxy vào *live.txt*."
-            print(message)
-            send_telegram_message(message)  # Gửi tin nhắn về Telegram
-        else:
-            message = "⚠️ Không tìm thấy proxy hợp lệ."
-            print(message)
-            send_telegram_message(message)  # Gửi tin nhắn về Telegram
+        start_time = time.time()
         
-        print(f"⏳ Đợi 5 phút trước khi quét lại...")
-        time.sleep(300)  # Đợi 5 phút (300 giây)
+        # Xử lý chính
+        results = process_urls(args.list)
+        unique_proxies = list(OrderedDict.fromkeys(results['proxies']))
+        
+        # Lưu kết quả
+        with open('live.txt', 'w') as f:
+            f.write('\n'.join(unique_proxies))
+        
+        update_url_lists(args.list, results)
+        
+        # Gửi báo cáo
+        report = generate_report(results)
+        send_file_to_telegram('live.txt', report)
+        
+        # Thống kê
+        exec_time = time.time() - start_time
+        print(f"⏳ Đã hoàn thành trong {exec_time:.2f}s")
+        print(f"🕒 Chu kỳ tiếp theo sau 5 phút...")
+        time.sleep(300)
 
 if __name__ == "__main__":
     main()
