@@ -11,6 +11,7 @@ const maxConcurrentAttacks = 3, maxSlot = 1, maxTimeAttacks = 120;
 // Khởi tạo bot
 const bot = new TelegramBot(token, { polling: true });
 const currentAttacks = new Map(), attackQueue = [];
+const userProcesses = new Map(); // Lưu trữ tiến trình của người dùng
 
 // Thông báo bot đã sẵn sàng
 let isBotReady = true;
@@ -36,11 +37,14 @@ const executeCommand = async (chatId, command, host, time, username) => {
     await sendMarkdownMessage(chatId, startMessage);
 
     const child = exec(command, { shell: '/bin/bash' });
+    userProcesses.set(chatId, { pid, startTime: Date.now(), time }); // Lưu tiến trình của người dùng
+
     child.on('close', () => {
         const endTime = getVietnamTime();
         const completeMessage = `✅ Process Completed:\nPID: ${pid}\nWEBSITE: ${host}\nTime: ${time} Seconds\nCaller: @${username}\nEnd Time: ${endTime}`;
         sendMarkdownMessage(chatId, completeMessage);
         currentAttacks.delete(chatId);
+        userProcesses.delete(chatId); // Xóa tiến trình của người dùng khi hoàn thành
         if (attackQueue.length > 0) {
             const nextAttack = attackQueue.shift();
             executeCommand(nextAttack.chatId, nextAttack.command, nextAttack.host, nextAttack.time, nextAttack.username);
@@ -63,10 +67,9 @@ bot.on('message', async (msg) => {
         const [host, time] = parts;
         if (time > maxTimeAttacks) return sendMarkdownMessage(chatId, `🚫 Maximum time is ${maxTimeAttacks} seconds.`);
 
-        // Kiểm tra số lệnh đang chạy của người dùng
-        const userAttacks = Array.from(currentAttacks.values()).filter(attack => attack.user === chatId).length;
-        if (userAttacks >= maxSlot) {
-            const remainingTime = maxTimeAttacks - (Date.now() - currentAttacks.get(chatId).startTime) / 1000;
+        // Kiểm tra xem người dùng có tiến trình đang chạy không
+        if (userProcesses.has(chatId)) {
+            const remainingTime = userProcesses.get(chatId).time - (Date.now() - userProcesses.get(chatId).startTime) / 1000;
             return sendMarkdownMessage(chatId, `🚫 You already have a running command. Please wait for the current process to complete. Remaining time: ${Math.ceil(remainingTime)} seconds.`);
         }
 
