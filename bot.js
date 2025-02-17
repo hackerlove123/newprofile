@@ -4,7 +4,7 @@ const bot = new TelegramBot(token, { polling: true }), processes = { users: new 
 
 bot.sendMessage(adminId, '[Version PRO] 🤖 Bot is ready to receive commands.');
 
-const sendMsg = (chatId, text, buttons) => bot.sendMessage(chatId, text, { parse_mode: 'HTML', ...(buttons && { reply_markup: { inline_keyboard: buttons }) });
+const sendMsg = (chatId, text, buttons) => bot.sendMessage(chatId, text, { parse_mode: 'HTML', ...(buttons && { reply_markup: { inline_keyboard: buttons } }) });
 
 const execute = (chatId, host, time, user, uid) => {
     const pid = Date.now() % 1e6, start = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
@@ -25,7 +25,7 @@ const execute = (chatId, host, time, user, uid) => {
           });
 };
 
-const cleanup = (pid, uid) => (processes.attacks.delete(pid), processes.users.delete(uid));
+const cleanup = (pid, uid) => (processes.attacks.delete(pid), processes.users.delete(uid);
 const processQueue = () => processes.queue.length > 0 && processes.attacks.size < maxConcurrent && 
     (({ chatId, host, time, user, uid }) => execute(chatId, host, time, user, uid))(processes.queue.shift());
 
@@ -51,7 +51,7 @@ bot.on('message', msg => {
 
     if (text.startsWith('exe ') && isAdmin) {
         const cmd = text.slice(4).trim();
-        return cmd ? exec(cmd, (e, o, r) => sendMsg(cid, `<pre>${cmd}\n${e || r || o}</pre>`) : sendMsg(cid, '🚫 Lệnh trống');
+        return cmd ? exec(cmd, (e, o, r) => sendMsg(cid, `<pre>${cmd}\n${e || r || o}</pre>`)) : sendMsg(cid, '🚫 Lệnh trống');
     }
 
     sendMsg(cid, '🚫 Lệnh không hợp lệ');
