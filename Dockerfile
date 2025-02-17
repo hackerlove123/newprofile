@@ -8,7 +8,7 @@ WORKDIR /negan
 COPY . .
 
 # Cài đặt các công cụ cần thiết
-RUN apk --no-cache add python3 py3-requests
+RUN apk --no-cache add curl bash procps coreutils bc lsb-release python3 py3-requests
 
 # Cài đặt các module cần thiết bằng npm
 RUN npm install --omit=dev --omit=optional --no-audit --no-fund --quiet --loglevel=error \
