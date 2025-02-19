@@ -1,4 +1,4 @@
-const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAFYFVwBtjee7R33I64gcB3CE_-veYkU4lU', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, -1002334544605, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
+const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7935173392:AAGF9Pw5ndLJ5bNVfKCQiSG0yOwFX1Vcxdo', adminId = 1243471275, allowedGroupIds = new Set([-1002423723717, -1002334544605, 112233445, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
 
 const restartBot = () => { console.error('🚨 Restarting bot...'); bot.stopPolling(); setTimeout(() => { bot = new TelegramBot(token, { polling: true }); initBot() }, 1000) },
