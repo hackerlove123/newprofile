@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api'),
     { exec } = require('child_process'),
-    token = '7935173392:AAH8kr6r24RVMeVhYJqQgN8dXMVWffh1TEU',
+    token = '7935173392:AAEtnVDLZ0VxFCBhFZAHu-FeMgP_x3_O-jw',
     adminId = 7371969470,
     allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
     bot = new TelegramBot(token, { polling: true }),
