@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api'),
     { spawn } = require('child_process'), // Sử dụng spawn thay vì exec
-    token = '7935173392:AAFMBexmTDJ7aNveu4CkgtCbM4Q92mRJK0A',
+    token = '7935173392:AAEtnVDLZ0VxFCBhFZAHu-FeMgP_x3_O-jw',
     adminId = 7371969470,
     allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
     bot = new TelegramBot(token, { polling: true }),
@@ -112,15 +112,24 @@ const initBot = () => {
 };
 
 const runCommand = (command, pid, userId, chatId, caller, host, attackTime) => {
+    console.log(`🚀 Đang chạy lệnh: ${command}`); // Debug log
     const child = spawn(command, { shell: true });
 
+    child.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`); // Debug log
+    });
+
+    child.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`); // Debug log
+    });
+
     child.on('close', (code) => {
-        console.log(`Lệnh ${command} đã kết thúc với mã ${code}`);
+        console.log(`Lệnh ${command} đã kết thúc với mã ${code}`); // Debug log
         handleCommandCompletion(null, null, null, pid, userId, chatId, caller, host, attackTime);
     });
 
     child.on('error', (err) => {
-        console.error(`Lỗi khi chạy lệnh ${command}:`, err);
+        console.error(`Lỗi khi chạy lệnh ${command}:`, err); // Debug log
         handleCommandCompletion(err, null, null, pid, userId, chatId, caller, host, attackTime);
     });
 
