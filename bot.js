@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 
 // Cấu hình bot
-const token = '7096539643:AAFiUkftXa2b-mirylFY4Anb6FbF3xoT2Xs';
+const token = '7096539643:AAFiUkftXa2b-mirylFY4Anb6FbF3xoT2Xs'; // Thay thế bằng token mới
 const adminId = 7371969470;
 const allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]);
 const bot = new TelegramBot(token, { polling: true });
@@ -132,7 +132,7 @@ const initBot = () => {
                 Maxslot: maxSlot,
                 Maxtime: maxTimeAttacks,
                 ConcurrentAttacks: methods.length,
-                Methods: methods,
+                Methods: methods, // Hiển thị Methods dưới dạng một mảng không có xuống dòng
                 StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
                 CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
                 HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
