@@ -123,6 +123,13 @@ const runCommand = (command, pid, userId, chatId, caller, host, attackTime) => {
         console.error(`Lỗi khi chạy lệnh ${command}:`, err);
         handleCommandCompletion(err, null, null, pid, userId, chatId, caller, host, attackTime);
     });
+
+    // Thêm thời gian chờ để đảm bảo lệnh không kết thúc quá sớm
+    setTimeout(() => {
+        if (!child.killed) {
+            child.kill(); // Đảm bảo lệnh kết thúc sau khi hết thời gian
+        }
+    }, attackTime * 1000);
 };
 
 const handleCommandCompletion = (e, stdout, stderr, pid, userId, chatId, caller, host, attackTime) => {
