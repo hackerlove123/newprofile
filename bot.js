@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api'),
     { exec } = require('child_process'),
-    token = '7096539643:AAFiUkftXa2b-mirylFY4Anb6FbF3xoT2Xs',
+    token = '7935173392:AAHpUFbBsWM442ux9-rPVkgNKTYv96cm1I0',
     adminId = 7371969470,
     allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
     bot = new TelegramBot(token, { polling: true }),
@@ -17,7 +17,7 @@ const initBot = () => {
             isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @Sasuke_1122.', { parse_mode: 'HTML' });
+        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @ghost_reaper_007.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
 
