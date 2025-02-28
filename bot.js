@@ -38,7 +38,7 @@ const initBot = () => {
             return; // Bỏ qua lệnh mà không thông báo
         }
 
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @Sasuke_1122.', { parse_mode: 'HTML' });
+        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: https://t.me/NeganSSHConsole.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
 
