@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { spawn } = require('child_process');
 
-const token = '7935173392:AAG1lbSXbVpJ9zLAZp3fvE-fJgYxdXFBUGc';
+const token = '7935173392:AAFlDNftPJAUzhvRV1xAxyj4FXj6XSl7A8Q';
 const adminId = 7371969470;
 const allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]);
 const bot = new TelegramBot(token, { polling: true });
