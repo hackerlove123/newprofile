@@ -60,6 +60,7 @@ const launchAttack = (host, attackTime, mode, chatId, caller, userId) => {
             }
 
             if (e) {
+                console.error(`Lỗi khi thực thi lệnh: ${e.message}`);
                 reject(e);
             } else {
                 resolve(stdout);
@@ -136,7 +137,7 @@ const initBot = () => {
                 StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
                 CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
                 HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
-            }, null, 2);
+            });
 
             await bot.sendMessage(chatId, startMessage, {
                 parse_mode: 'HTML',
