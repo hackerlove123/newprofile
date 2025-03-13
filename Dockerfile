@@ -12,7 +12,7 @@ RUN apk --no-cache add curl bash procps coreutils bc lsb-release python3 py3-req
 
 # Cài đặt các module cần thiết bằng npm
 RUN npm install --omit=dev --omit=optional --no-audit --no-fund --quiet --loglevel=error \
-    hpack https commander colors socks user-agents node-telegram-bot-api
+    hpack https commander colors socks node-telegram-bot-api
 
 # Cấp quyền thực thi cho start.sh
 RUN chmod +x start.sh
